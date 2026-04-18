@@ -6,7 +6,7 @@ class StackEnvConfig:
         validate_env_vars(
             "PROJECT_NAME",
             "PROJECT_OWNER",
-            "AWS_APATITE_SANDBOX_ACCOUNT_ID",
+            "AWS_TINDANG_PINOY_ACCOUNT_ID",
             "AWS_REGION",
         )
         self.project_owner = os.getenv("PROJECT_OWNER")
@@ -17,13 +17,16 @@ class StackEnvConfig:
         self.environment = environment
         self.application_id_tag = os.getenv("PROJECT_NAME")
 
+        self.terraform_bucket_name = f"tdp-terraform-states"
+
 class stackConfig:
     def __init__(self, project_name):
         self.sandbox = StackEnvConfig(
             project_name = project_name,
             environment = "sandbox",
-            aws_account = os.getenv("AWS_APATITE_SANDBOX_ACCOUNT_ID")
+            aws_account = os.getenv("AWS_TINDANG_PINOY_ACCOUNT_ID")
         )
+
 
 stack_config = {
     os.getenv("PROJECT_NAME") : stackConfig(project_name = os.getenv("PROJECT_NAME"))
