@@ -1,13 +1,20 @@
-# Template CDK Python Project
+# tdp-s3-manager-cdk
 
-A reusable AWS CDK template for Python-based infrastructure projects. Provides a structured starting point with environment-based configuration, env var validation, and stack setup wired together out of the box.
+AWS CDK project that provisions an S3 bucket for storing Terraform state files for Tindang Pinoy infrastructure.
+
+## Deployed Resources
+
+| Resource | Value |
+|---|---|
+| Terraform State Bucket Name | `tdp-terraform-states` |
+| Terraform State Bucket ARN | `arn:aws:s3:::tdp-terraform-states` |
 
 ---
 
 ## Project Structure
 
 ```
-template-cdk-python-project-/
+tdp-s3-manager-cdk/
 ├── app.py                              # CDK entry point — loads env vars and synthesizes the app
 ├── cdk.json                            # CDK configuration and feature flags
 ├── requirements.txt                    # CDK-specific dependencies
@@ -18,10 +25,19 @@ template-cdk-python-project-/
 │   ├── env_config.py                   # Defines StackEnvConfig and stack_config registry
 │   ├── setup_stack.py                  # Resolves and instantiates the correct stack + environment
 │   └── validators.py                   # Validates required env vars are set before stack init
-└── project_name_cdk/
+└── tdpBucketManagerCDK/
     ├── __init__.py
-    └── project_name_cdk.py             # CDK stack definition (rename for your project)
+    └── stack_handler.py                # CDK stack — creates the versioned S3 bucket
 ```
+
+---
+
+## What It Deploys
+
+A single CloudFormation stack (`tdp-bucket-manager`) containing:
+
+- **S3 bucket** named `tdp-terraform-states` — versioned, used to store Terraform state files
+- CloudFormation outputs for the bucket name and ARN
 
 ---
 
@@ -36,7 +52,7 @@ cdk synth / cdk deploy
         └── setup_stack() resolves config
                   │
                   ├── 3. Looks up stack by PROJECT_NAME in stack_config
-                  ├── 4. Resolves environment (e.g. non-prod) from ENVIRONMENT
+                  ├── 4. Resolves environment (e.g. prod) from ENVIRONMENT
                   ├── 5. Validates required env vars via validators.py
                   └── 6. Instantiates the CDK stack with a StackEnvConfig object
 ```
@@ -61,7 +77,8 @@ cdk synth / cdk deploy
 Create `~/.config/.env` with shared variables used across projects:
 
 ```bash
-AWS_ACCOUNT=123456789012
+PROJECT_OWNER=your-name
+AWS_TINDANG_PINOY_ACCOUNT_ID=123456789012
 AWS_REGION=us-east-1
 ```
 
@@ -76,11 +93,12 @@ cp .env.template .env
 Required variables:
 
 ```bash
-AWS_ACCOUNT=            # AWS account ID to deploy into
-AWS_REGION=             # Target AWS region
-AWS_CDK_APPLICATION_ID= # Tag value for the application ID
-PROJECT_NAME=           # Must match a key in stack_config in env_config.py
-ENVIRONMENT=            # Environment to deploy (e.g. non-prod)
+PROJECT_OWNER=                      # Owner tag applied to the stack
+AWS_TINDANG_PINOY_ACCOUNT_ID=       # AWS account ID to deploy into
+AWS_REGION=                         # Target AWS region
+AWS_CDK_APPLICATION_ID=             # Tag value for the application ID
+PROJECT_NAME=tdp-bucket-manager     # Must match a key in stack_config in env_config.py
+ENVIRONMENT=prod                    # Environment to deploy
 ```
 
 ### 3. Install the virtual environment
@@ -111,18 +129,20 @@ cdk synth
 
 | Variable | Description |
 |---|---|
-| `AWS_ACCOUNT` | AWS account ID |
+| `PROJECT_OWNER` | Owner tag applied to deployed resources |
+| `AWS_TINDANG_PINOY_ACCOUNT_ID` | AWS account ID for Tindang Pinoy |
 | `AWS_REGION` | Target AWS region |
 
 ### `.env` — Project-specific
 
 | Variable | Description |
 |---|---|
-| `AWS_ACCOUNT` | Overrides global if set |
+| `PROJECT_OWNER` | Overrides global if set |
+| `AWS_TINDANG_PINOY_ACCOUNT_ID` | Overrides global if set |
 | `AWS_REGION` | Overrides global if set |
 | `AWS_CDK_APPLICATION_ID` | Application ID tag applied to the stack |
-| `PROJECT_NAME` | Must match a key defined in `stack_config` in `env_config.py` |
-| `ENVIRONMENT` | Stack environment to deploy (e.g. `non-prod`) |
+| `PROJECT_NAME` | Must be `tdp-bucket-manager` |
+| `ENVIRONMENT` | Must be `prod` |
 
 > Project `.env` values take precedence over `~/.config/.env` values.
 
@@ -139,8 +159,8 @@ Resolves the correct `StackEnvConfig` for the current `PROJECT_NAME` and `ENVIRO
 ### `config/validators.py`
 `validate_env_vars(*names)` — checks that all named environment variables are set and non-empty. Collects all failures and raises a single `ValueError` listing every missing variable.
 
-### `project_name_cdk/project_name_cdk.py`
-The CDK stack class. Receives a `StackEnvConfig` instance as `config` — use `config.region`, `config.aws_account`, `config.application_id_tag`, etc. directly inside the stack.
+### `tdpBucketManagerCDK/stack_handler.py`
+The CDK stack class. Creates the `tdp-terraform-states` S3 bucket with versioning enabled. Receives a `StackEnvConfig` instance as `config` — use `config.region`, `config.aws_account`, `config.application_id_tag`, etc. directly inside the stack.
 
 ---
 
@@ -149,6 +169,6 @@ The CDK stack class. Receives a `StackEnvConfig` instance as `config` — use `c
 | Error | Cause | Fix |
 |---|---|---|
 | `Environment variables are missing or empty` | One or more required vars not set in `.env` | Populate all required variables in `.env` |
-| `Stack name X not found in stack_config` | `PROJECT_NAME` doesn't match a key in `env_config.py` | Add the project to `stack_config` or fix `PROJECT_NAME` |
-| `Environment X not found in the config file` | `ENVIRONMENT` value has no matching attribute on `stackConfig` | Add the environment to `stackConfig` or fix `ENVIRONMENT` |
-| `ModuleNotFoundError` | Running CDK outside the activated venv | Run `source .venv/bin/activate` first |
+| `Stack name X not found in stack_config` | `PROJECT_NAME` doesn't match a key in `env_config.py` | Ensure `PROJECT_NAME=tdp-bucket-manager` |
+| `Environment X not found in the config file` | `ENVIRONMENT` value has no matching attribute on `stackConfig` | Ensure `ENVIRONMENT=prod` |
+| `ModuleNotFoundError: No module named 'dotenv'` | Running CDK outside the activated venv | Run `source .venv/bin/activate` first |

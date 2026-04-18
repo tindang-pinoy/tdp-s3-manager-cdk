@@ -21,9 +21,9 @@ class StackEnvConfig:
 
 class stackConfig:
     def __init__(self, project_name):
-        self.sandbox = StackEnvConfig(
+        self.prod = StackEnvConfig(
             project_name = project_name,
-            environment = "sandbox",
+            environment = "prod",
             aws_account = os.getenv("AWS_TINDANG_PINOY_ACCOUNT_ID")
         )
 
